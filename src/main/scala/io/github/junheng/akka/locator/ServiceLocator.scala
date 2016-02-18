@@ -17,11 +17,11 @@ import scala.language.postfixOps
 object ServiceLocator {
   var curator: CuratorFramework = null
   var discovery: ServiceDiscovery[String] = null
-  var locals = Map[String,ActorRef]()
+  var locals = Map[String, ActorRef]()
 
-  def initialize(zookeeper: String) = {
+  def initialize(zookeeper: String, namespace: String = "dragon") = {
     curator = CuratorFrameworkFactory.builder()
-      .namespace("dragon")
+      .namespace(namespace)
       .connectString(zookeeper)
       .sessionTimeoutMs(1000)
       .connectionTimeoutMs(1000)
@@ -62,7 +62,7 @@ trait ServiceLocator {
   this: Actor with ActorLogging =>
   implicit val timeout = Timeout(10 seconds)
 
-  def located(path: String):Located = new LocatedService(path)
+  def located(path: String): Located = new LocatedService(path)
 }
 
 
