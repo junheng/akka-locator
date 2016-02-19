@@ -20,7 +20,7 @@ trait Service extends Actor with ActorLogging {
     log.info(s"service registered $name - $identity - ${new String(remote)}")
   }
 
-  private def name = s"${self.path.elements.tail.mkString("/")}"
+  private def name = s"${self.path.elements.tail.mkString("-")}"
 
   private def identity = hex(DigestUtils.md5(remote))
 

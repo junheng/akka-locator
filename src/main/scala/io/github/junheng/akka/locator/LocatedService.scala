@@ -5,7 +5,7 @@ import io.github.junheng.akka.locator.Located.CanNotLocatedGuaranteedService
 import org.apache.curator.x.discovery.strategies.RoundRobinStrategy
 
 class LocatedService(path: String) extends Located {
-  val name = if (path.startsWith("/user/")) path.replaceFirst("/user/", "") else path //compatible with actor path
+  val name = (if (path.startsWith("/user/")) path.replaceFirst("/user/", "") else path).replaceAll("/","-")
 
   val service = ServiceLocator.discovery
     .serviceProviderBuilder()

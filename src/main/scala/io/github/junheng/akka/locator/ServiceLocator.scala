@@ -42,7 +42,7 @@ object ServiceLocator {
   def hex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 
   def register(actorRef: ActorRef, system: ActorSystem) = {
-    val name = s"${actorRef.path.elements.tail.mkString("/")}"
+    val name = s"${actorRef.path.elements.tail.mkString("-")}"
 
     val remote = actorRef.path.toStringWithAddress(TransportExtension(system).address)
 
