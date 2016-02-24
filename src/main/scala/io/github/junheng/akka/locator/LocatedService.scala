@@ -5,7 +5,7 @@ import io.github.junheng.akka.locator.Located.CanNotLocatedGuaranteedService
 import org.apache.curator.x.discovery.strategies.RoundRobinStrategy
 
 class LocatedService(path: String) extends Located {
-  val name = (if (path.startsWith("/user/")) path.replaceFirst("/user/", "") else path).replaceAll("/","-")
+  val name = (if (path.startsWith("/user/")) path.replaceFirst("/user/", "") else path).replaceAll("/", "-")
 
   val service = ServiceLocator.discovery
     .serviceProviderBuilder()
@@ -15,14 +15,23 @@ class LocatedService(path: String) extends Located {
 
   service.start()
 
-  //first local then remote
+  //first local then remote, if no service currently block until available
   override def actor(implicit context: ActorContext): ActorSelection = {
+    var found = resolveService(context)
+    while (found == null) {
+      found = resolveService(context)
+      Thread.sleep(100)
+    }
+    found
+  }
+
+  def resolveService(context: ActorContext): ActorSelection = {
     ServiceLocator.locals.get(name) match {
       case Some(ref) => context.actorSelection(ref.path)
       case None =>
         Option(service.getInstance()) match {
           case Some(found) => context.actorSelection(found.getPayload)
-          case None => context.actorSelection("/deadLetters")
+          case None => null
         }
     }
   }
