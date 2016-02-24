@@ -9,7 +9,6 @@ trait Service extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
     super.preStart()
-    val instance: ServiceInstance[ServiceLocation] = instance
     ServiceLocator.discovery.registerService(instance)
     ServiceLocator.locals += instance.getId -> self
     log.info(s"service registered ${instance.getName} - ${instance.getId} - ${new String(instance.getPayload.url)}")
