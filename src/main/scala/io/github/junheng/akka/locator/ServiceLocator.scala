@@ -16,7 +16,7 @@ import scala.language.postfixOps
 
 object ServiceLocator {
   var curator: CuratorFramework = null
-  var discovery: ServiceDiscovery[String] = null
+  var discovery: ServiceDiscovery[ServiceLocation] = null
   var locals = Map[String, ActorRef]()
 
   def initialize(zookeeper: String, namespace: String = "dragon") = {
@@ -28,7 +28,7 @@ object ServiceLocator {
       .retryPolicy(new RetryForever(1000))
       .build()
 
-    discovery = ServiceDiscoveryBuilder.builder(classOf[String])
+    discovery = ServiceDiscoveryBuilder.builder(classOf[ServiceLocation])
       .client(ServiceLocator.curator)
       .basePath("/")
       .build()
@@ -42,18 +42,26 @@ object ServiceLocator {
   def hex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 
   def register(actorRef: ActorRef, system: ActorSystem) = {
+    ServiceLocator.discovery.registerService(createServiceInstance(actorRef, system, 0.0, "normal"))
+  }
+
+  def update(actorRef: ActorRef, system: ActorSystem, load: Double, status: String): Unit = {
+    ServiceLocator.discovery.updateService(createServiceInstance(actorRef, system, load, status))
+  }
+
+  def createServiceInstance(actorRef: ActorRef, system: ActorSystem, load:Double, status:String): ServiceInstance[ServiceLocation] = {
     val name = s"${actorRef.path.elements.tail.mkString("-")}"
 
     val remote = actorRef.path.toStringWithAddress(TransportExtension(system).address)
 
     val identity = hex(DigestUtils.md5(remote))
 
-    val instance = ServiceInstance.builder[String]()
-      .payload(remote)
+    val instance = ServiceInstance.builder[ServiceLocation]()
+      .payload(ServiceLocation("actor", remote, 0.0))
       .name(name)
       .id(identity)
       .build()
-    ServiceLocator.discovery.registerService(instance)
+    instance
   }
 }
 

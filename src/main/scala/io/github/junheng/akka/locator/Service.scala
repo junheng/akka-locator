@@ -1,37 +1,29 @@
 package io.github.junheng.akka.locator
 
-import akka.TransportExtension
 import akka.actor.{Actor, ActorLogging}
-import org.apache.commons.codec.digest.DigestUtils
 import org.apache.curator.x.discovery.ServiceInstance
 
 trait Service extends Actor with ActorLogging {
 
-  private val instance = ServiceInstance.builder[String]()
-    .payload(remote)
-    .name(name)
-    .id(identity)
-    .build()
+  private val instance = ServiceLocator.createServiceInstance(self, context.system, 0.0, "normal")
 
   override def preStart(): Unit = {
     super.preStart()
+    val instance: ServiceInstance[ServiceLocation] = instance
     ServiceLocator.discovery.registerService(instance)
-    ServiceLocator.locals += name -> self
-    log.info(s"service registered $name - $identity - ${new String(remote)}")
+    ServiceLocator.locals += instance.getId -> self
+    log.info(s"service registered ${instance.getName} - ${instance.getId} - ${new String(instance.getPayload.url)}")
   }
-
-  private def name = s"${self.path.elements.tail.mkString("-")}"
-
-  private def identity = hex(DigestUtils.md5(remote))
-
-  private def remote = self.path.toStringWithAddress(TransportExtension(context.system).address)
 
   override def postStop(): Unit = {
     super.postStop()
     ServiceLocator.discovery.unregisterService(instance)
-    ServiceLocator.locals -= name
-    log.info(s"service quited: ${new String(remote)}")
+    ServiceLocator.locals -= instance.getName
+    log.info(s"service quited: ${new String(instance.getPayload.url)}")
   }
 
-  def hex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
+  protected def reportLoad(load: Double, status: String = "normal") = {
+    ServiceLocator.discovery.updateService(ServiceLocator.createServiceInstance(self, context.system, load, status))
+  }
+
 }

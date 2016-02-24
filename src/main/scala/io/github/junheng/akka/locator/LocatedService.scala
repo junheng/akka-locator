@@ -2,14 +2,15 @@ package io.github.junheng.akka.locator
 
 import akka.actor.{ActorContext, ActorSelection}
 import io.github.junheng.akka.locator.Located.CanNotLocatedGuaranteedService
-import org.apache.curator.x.discovery.strategies.RoundRobinStrategy
+import org.apache.curator.x.discovery.details.InstanceProvider
+import org.apache.curator.x.discovery.{ProviderStrategy, ServiceInstance}
 
 class LocatedService(path: String) extends Located {
   val name = (if (path.startsWith("/user/")) path.replaceFirst("/user/", "") else path).replaceAll("/", "-")
 
   val service = ServiceLocator.discovery
     .serviceProviderBuilder()
-    .providerStrategy(new RoundRobinStrategy())
+    .providerStrategy(new LoadProviderStrategy())
     .serviceName(name)
     .build()
 
@@ -30,7 +31,7 @@ class LocatedService(path: String) extends Located {
       case Some(ref) => context.actorSelection(ref.path)
       case None =>
         Option(service.getInstance()) match {
-          case Some(found) => context.actorSelection(found.getPayload)
+          case Some(found) => context.actorSelection(found.getPayload.url)
           case None => null
         }
     }
@@ -53,5 +54,19 @@ class LocatedService(path: String) extends Located {
     this
   }
 }
+
+import scala.collection.JavaConversions._
+
+
+class LoadProviderStrategy extends ProviderStrategy[ServiceLocation] {
+
+  override def getInstance(instanceProvider: InstanceProvider[ServiceLocation]): ServiceInstance[ServiceLocation] = {
+    val sorted = instanceProvider.getInstances.filter(_.getPayload.status == "normal").sortWith {
+      case (left, right) => left.getPayload.load < right.getPayload.load
+    }
+    sorted.headOption.orNull
+  }
+}
+
 
 
