@@ -9,5 +9,8 @@ lazy val root = (project in file("."))
     scalaVersion := "2.11.7",
     libraryDependencies ++= dependencies.common,
     libraryDependencies ++= dependencies.akka,
-    libraryDependencies ++= dependencies.curator
+    libraryDependencies ++= dependencies.curator,
+    libraryDependencies ++= Seq(
+      "io.github.junheng.akka" %% "akka-monitor" % "0.1-SNAPSHOT" withSources()
+    )
   )

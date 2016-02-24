@@ -37,19 +37,20 @@ object ServiceLocator {
     if (curator.blockUntilConnected(10, TimeUnit.SECONDS)) {
       curator.create().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath("/node")
     } else new RuntimeException(s"can not connect to zookeeper: $zookeeper")
+
   }
 
   def hex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 
   def register(actorRef: ActorRef, system: ActorSystem) = {
-    ServiceLocator.discovery.registerService(createServiceInstance(actorRef, system, 0.0, "normal"))
+    ServiceLocator.discovery.registerService(createServiceInstance(actorRef, system, 0.0, Service.STATUS_NORMAL))
   }
 
   def update(actorRef: ActorRef, system: ActorSystem, load: Double, status: String): Unit = {
     ServiceLocator.discovery.updateService(createServiceInstance(actorRef, system, load, status))
   }
 
-  def createServiceInstance(actorRef: ActorRef, system: ActorSystem, load:Double, status:String): ServiceInstance[ServiceLocation] = {
+  def createServiceInstance(actorRef: ActorRef, system: ActorSystem, load: Double, status: String): ServiceInstance[ServiceLocation] = {
     val name = s"${actorRef.path.elements.tail.mkString("-")}"
 
     val remote = actorRef.path.toStringWithAddress(TransportExtension(system).address)
@@ -57,7 +58,7 @@ object ServiceLocator {
     val identity = hex(DigestUtils.md5(remote))
 
     val instance = ServiceInstance.builder[ServiceLocation]()
-      .payload(ServiceLocation("actor", remote, 0.0))
+      .payload(new ServiceLocation(Service.TYPE_ACTOR, remote, 0.0, Service.STATUS_NORMAL))
       .name(name)
       .id(identity)
       .build()
@@ -72,10 +73,5 @@ trait ServiceLocator {
 
   def located(path: String): Located = new LocatedService(path)
 }
-
-
-
-
-
 
 

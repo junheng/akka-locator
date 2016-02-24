@@ -1,11 +1,10 @@
 package io.github.junheng.akka.locator
 
 import akka.actor.{Actor, ActorLogging}
-import org.apache.curator.x.discovery.ServiceInstance
 
 trait Service extends Actor with ActorLogging {
 
-  private val instance = ServiceLocator.createServiceInstance(self, context.system, 0.0, "normal")
+  private var instance = ServiceLocator.createServiceInstance(self, context.system, 0.0, Service.STATUS_NORMAL)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -21,8 +20,20 @@ trait Service extends Actor with ActorLogging {
     log.info(s"service quited: ${new String(instance.getPayload.url)}")
   }
 
-  protected def reportLoad(load: Double, status: String = "normal") = {
-    ServiceLocator.discovery.updateService(ServiceLocator.createServiceInstance(self, context.system, load, status))
+  protected def reportLoad(load: Double, status: String = Service.STATUS_NORMAL) = {
+    if (instance.getPayload.load != load || instance.getPayload.status != status) {
+      instance = ServiceLocator.createServiceInstance(self, context.system, load, status)
+      ServiceLocator.discovery.updateService(instance)
+      log.info(s"${self.path.toStringWithoutAddress} overload $load status $status")
+    }
   }
 
 }
+
+object Service {
+  val TYPE_ACTOR = "actor"
+  val STATUS_NORMAL = "normal"
+  val STATUS_OVERLOAD = "overload"
+}
+
+
