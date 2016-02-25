@@ -5,6 +5,8 @@ import akka.actor.{ActorContext, ActorSelection}
 trait Located {
   def actor(implicit context: ActorContext): ActorSelection
 
+  def actorOpt(implicit context: ActorContext): Option[ActorSelection]
+
   def guaranteed(retry: Int = 15): Located
 }
 

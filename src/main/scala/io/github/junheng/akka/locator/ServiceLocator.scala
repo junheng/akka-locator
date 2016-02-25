@@ -58,7 +58,7 @@ object ServiceLocator {
     val identity = hex(DigestUtils.md5(remote))
 
     val instance = ServiceInstance.builder[ServiceLocation]()
-      .payload(new ServiceLocation(Service.TYPE_ACTOR, remote, 0.0, Service.STATUS_NORMAL))
+      .payload(new ServiceLocation(Service.TYPE_ACTOR, remote, load, status))
       .name(name)
       .id(identity)
       .build()
@@ -71,7 +71,7 @@ trait ServiceLocator {
   this: Actor with ActorLogging =>
   implicit val timeout = Timeout(10 seconds)
 
-  def located(path: String): Located = new LocatedService(path)
+  def located(path: String): Located = new LocatedService(path)(log)
 }
 
 
